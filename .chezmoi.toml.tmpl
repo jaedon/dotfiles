@@ -1,3 +1,11 @@
+{{- $personalEmail := "jaedon.shin@gmail.com" -}}
+{{- $workEmail := env "WORK_EMAIL" -}}
+{{- $email := $personalEmail -}}
+
+{{- if and $workEmail (has .chezmoi.username (list "ubuntu" "root" "vagrant" "vscode")) -}}
+{{-   $email = $workEmail -}}
+{{- end -}}
+
 [data]
     name = "Jaedon Shin"
-    email = "jaedon.shin@gmail.com"
+    email = {{ $email | quote }}
