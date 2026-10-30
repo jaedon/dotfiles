@@ -88,6 +88,310 @@ alias 3='cd -3'
 alias grep='grep --color=auto'
 alias path='print -l $path'    # Native zsh, no pipe or tr
 
+# Functions
+_docker_available() {
+  command -v docker >/dev/null 2>&1
+}
+
+_require_command() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "Error: command not found: $1" >&2
+    return 1
+  }
+}
+
+_confirm() {
+  local reply
+  read -q "reply?${1:-Continue?} [y/N] " || {
+    echo "\nAborted."
+    return 1
+  }
+  echo
+}
+
+_valid_port() {
+  [[ "$1" == <-> ]] && (( $1 >= 1 && $1 <= 65535 ))
+}
+
+# Docker
+,docker-prune-containers() {
+  _docker_available || return 1
+  _confirm "Remove all stopped containers?" || return 1
+  docker container prune
+}
+
+,docker-prune-images() {
+  _docker_available || return 1
+  _confirm "Remove images not used by any container?" || return 1
+  docker image prune -a
+}
+
+,docker-prune-volumes() {
+  _docker_available || return 1
+  _confirm "Remove unused Docker volumes?" || return 1
+  docker volume prune
+}
+
+,docker-nuke() {
+  _docker_available || return 1
+  _confirm "Remove unused Docker resources, including volumes?" || return 1
+  docker system prune -af --volumes
+}
+
+# Network
+,port() {
+  local port=${1:?"Usage: ,port <port>"}
+  _valid_port "$port" || return 1
+  _require_command lsof || return 1
+  lsof -nP -iTCP:"$port" -sTCP:LISTEN
+}
+
+,port-kill() {
+  local port=${1:?"Usage: ,port-kill <port>"}
+  local pids
+
+  _valid_port "$port" || return 1
+  _require_command lsof || return 1
+
+  pids=("${(@f)$(lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null)}")
+
+  if (( ${#pids[@]} == 0 )) || [[ -z "${pids[1]}" ]]; then
+    echo "No process listening on port $port."
+    return 0
+  fi
+
+  ps -p "${(j:,:)pids}" -o pid,comm
+  _confirm "Send SIGTERM to these processes?" || return 1
+  kill -TERM "${pids[@]}"
+}
+
+,port-scan() {
+  if [[ "$OSTYPE" == linux* ]]; then
+    _require_command ss || return 1
+    ss -tulnp
+  elif [[ "$OSTYPE" == darwin* ]]; then
+    _require_command lsof || return 1
+    lsof -nP -iTCP -iUDP
+  else
+    echo "Error: unsupported OS: $OSTYPE" >&2
+    return 1
+  fi
+}
+
+# Process
+,proc-find() {
+  local name=${1:?"Usage: ,proc-find <name>"}
+  _require_command pgrep || return 1
+  pgrep -fl "$name"
+}
+
+,mem-top() {
+  ps -A -o %mem=,pid=,comm= | sort -nr | head -n 10
+}
+
+# Filesystem
+,fs() {
+  du -sh "${1:-.}"
+}
+
+,mkcd() {
+  local dir=${1:?"Usage: ,mkcd <dir>"}
+  mkdir -p "$dir" && cd "$dir"
+}
+
+,align16() {
+  local file=${1:?"Usage: ,align16 <file>"}
+  _require_command python3 || return 1
+
+  python3 - "$file" <<'PY'
+import os
+import sys
+
+path = sys.argv[1]
+
+if not os.path.isfile(path):
+    sys.exit(f"Error: not a regular file: {path}")
+
+size = os.path.getsize(path)
+aligned = (size + 15) // 16 * 16
+
+try:
+    with open(path, "r+b") as f:
+        f.truncate(aligned)
+except OSError as exc:
+    sys.exit(f"Error: {exc}")
+
+print(f"Aligned: {size} -> {aligned} bytes")
+PY
+}
+
+# IP
+,ip() {
+  local local_ip=""
+  local public_ip=""
+
+  if [[ "$OSTYPE" == darwin* ]]; then
+    local interface
+    interface=$(route -n get default 2>/dev/null |
+      awk '/interface:/{print $2; exit}')
+
+    [[ -n "$interface" ]] &&
+      local_ip=$(ipconfig getifaddr "$interface" 2>/dev/null)
+  elif [[ "$OSTYPE" == linux* ]]; then
+    local_ip=$(ip route get 1.1.1.1 2>/dev/null |
+      awk '{for (i=1; i<=NF; i++) if ($i=="src") {print $(i+1); exit}}')
+  else
+    echo "Error: unsupported OS: $OSTYPE" >&2
+    return 1
+  fi
+
+  public_ip=$(curl -fsS --max-time 3 https://ifconfig.me 2>/dev/null) || true
+
+  echo "Local : ${local_ip:-unavailable}"
+  echo "Public: ${public_ip:-unavailable}"
+}
+
+,ip-geo() {
+  local target_ip=${1:-}
+
+  _require_command curl || return 1
+  _require_command python3 || return 1
+
+  if [[ -z "$target_ip" ]]; then
+    target_ip=$(curl -fsS --max-time 3 https://ifconfig.me) || return 1
+  fi
+
+  [[ -n "$target_ip" ]] || return 1
+
+  curl -fsS --max-time 5 "https://ipwho.is/${target_ip}" |
+    python3 -m json.tool
+}
+
+# HTTP
+,http-here() {
+  local port=${1:-8080}
+  _valid_port "$port" || return 1
+  _require_command python3 || return 1
+  python3 -m http.server "$port"
+}
+
+# Time
+,epoch() {
+  date +%s
+}
+
+,epoch-to-date() {
+  local ts=${1:?"Usage: ,epoch-to-date <timestamp>"}
+
+  [[ "$ts" == <-> ]] || {
+    echo "Error: timestamp must be a non-negative integer." >&2
+    return 1
+  }
+
+  if [[ "$OSTYPE" == darwin* ]]; then
+    TZ=UTC date -r "$ts" '+%Y-%m-%d %H:%M:%S UTC'
+  else
+    TZ=UTC date -d "@$ts" '+%Y-%m-%d %H:%M:%S UTC'
+  fi
+}
+
+,uuid() {
+  _require_command python3 || return 1
+  python3 -c 'import uuid; print(uuid.uuid4())'
+}
+
+,bin-timestamp() {
+  local file=${1:?"Usage: ,bin-timestamp <file> [offset=6]"}
+  local offset=${2:-6}
+
+  [[ "$offset" == <-> ]] || {
+    echo "Error: offset must be a non-negative integer." >&2
+    return 1
+  }
+
+  _require_command python3 || return 1
+
+  python3 - "$file" "$offset" <<'PY'
+import datetime
+import sys
+
+path = sys.argv[1]
+offset = int(sys.argv[2])
+
+try:
+    with open(path, "rb") as f:
+        f.seek(offset)
+        data = f.read(4)
+except OSError as exc:
+    sys.exit(f"Error: {exc}")
+
+if len(data) != 4:
+    sys.exit("Error: insufficient data at the specified offset.")
+
+timestamp = int.from_bytes(data, byteorder="big", signed=False)
+
+try:
+    dt = datetime.datetime.fromtimestamp(
+        timestamp, tz=datetime.timezone.utc
+    )
+except (ValueError, OverflowError, OSError) as exc:
+    sys.exit(f"Error: invalid timestamp: {exc}")
+
+print(dt.strftime("%Y.%m.%d.%H.%M.%S"))
+PY
+}
+
+# Disk
+,disk-init-mbr() {
+  local dev=${1:?"Usage: ,disk-init-mbr <device>"}
+
+  [[ "$OSTYPE" == linux* ]] || {
+    echo "Error: Linux only." >&2
+    return 1
+  }
+
+  _require_command parted || return 1
+  _require_command lsblk || return 1
+
+  [[ -b "$dev" ]] || {
+    echo "Error: not a block device: $dev" >&2
+    return 1
+  }
+
+  echo "WARNING: This will replace the partition table on $dev"
+  lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS "$dev" || return 1
+
+  _confirm "Create a new MBR partition table on $dev?" || return 1
+
+  sudo parted -s "$dev" mklabel msdos &&
+    echo "MBR label created on $dev"
+}
+
+# Binary
+,bindiff() {
+  local file1=${1:?"Usage: ,bindiff <file1> <file2>"}
+  local file2=${2:?"Usage: ,bindiff <file1> <file2>"}
+
+  _require_command hexdump || return 1
+
+  [[ -f "$file1" && -f "$file2" ]] || {
+    echo "Error: both arguments must be regular files." >&2
+    return 1
+  }
+
+  diff -u \
+    <(hexdump -C "$file1") \
+    <(hexdump -C "$file2")
+}
+
+# Git
+,branches() {
+  git for-each-ref \
+    --sort=-committerdate \
+    --format='%(committerdate:iso8601) %(committerdate:relative)%09%(refname:short)' \
+    refs/heads/
+}
+
 # Autosuggestions (guard: the external may be missing if the download failed)
 [[ -r $HOME/.local/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] \
   && source $HOME/.local/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
