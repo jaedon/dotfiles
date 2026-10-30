@@ -1,0 +1,96 @@
+# History Configuration
+HISTFILE=${ZDOTDIR:-$HOME}/.zsh_history
+HISTSIZE=100000
+SAVEHIST=100000
+
+# History options
+setopt EXTENDED_HISTORY        # Record timestamp and duration
+setopt SHARE_HISTORY           # Share across sessions (includes incremental append)
+setopt HIST_IGNORE_ALL_DUPS    # Remove older duplicates (covers the other *_DUPS options)
+setopt HIST_IGNORE_SPACE       # Skip commands that start with a space
+setopt HIST_REDUCE_BLANKS      # Remove unnecessary blanks
+setopt HIST_VERIFY             # Verify before executing from history
+
+# General ZSH Options
+setopt AUTO_CD                 # Auto cd by typing directory name
+setopt AUTO_PUSHD              # cd pushes old directory onto stack
+setopt PUSHD_IGNORE_DUPS       # No duplicates in directory stack
+setopt PUSHD_SILENT            # Suppress pushd/popd output
+setopt INTERACTIVE_COMMENTS    # Allow comments in interactive shell
+setopt MAGIC_EQUAL_SUBST       # Enable filename expansion after =
+setopt NUMERIC_GLOB_SORT       # Sort filenames numerically
+setopt PROMPT_SUBST            # Enable prompt substitution
+
+# Keymap: force emacs mode regardless of $EDITOR
+bindkey -e
+
+# Colors Configuration
+{{ if eq .chezmoi.os "linux" -}}
+if (( $+commands[dircolors] )); then
+  eval "$(dircolors -b)"
+  zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+  alias ls='ls --color=auto'
+fi
+{{- else if eq .chezmoi.os "darwin" }}
+export CLICOLOR=1
+export LSCOLORS="ExGxFxdxCxdadahbadacec"
+{{- end }}
+
+autoload -Uz select-word-style
+select-word-style bash
+
+# Completion System
+fpath+=($HOME/.local/share/zsh/plugins/zsh-completions/src)
+fpath+=($HOME/.local/share/zsh/site-functions)
+
+# Completion: rebuild the dump once a day, otherwise skip the security audit
+autoload -Uz compinit
+() {
+  setopt local_options extended_glob
+  local dump=${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump
+  local -a stale=( $dump(#qN.mh+24) )
+  mkdir -p ${dump:h}
+  if [[ ! -f $dump ]] || (( $#stale )); then
+    compinit -d $dump
+  else
+    compinit -C -d $dump
+  fi
+}
+
+# Completion styles
+zstyle ':completion:*' auto-description 'specify: %d'
+zstyle ':completion:*' completer _expand _complete _correct _approximate
+zstyle ':completion:*' format 'Completing %d'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' menu select=long
+zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
+zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
+zstyle ':completion:*' use-compctl false
+zstyle ':completion:*' verbose true
+zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
+zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
+
+# Aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+alias hd='hexdump -C'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
+alias ......='cd ../../../../..'
+alias d='dirs -v'
+alias 1='cd -1'
+alias 2='cd -2'
+alias 3='cd -3'
+alias grep='grep --color=auto'
+alias path='print -l $path'    # Native zsh, no pipe or tr
+
+# Autosuggestions (guard: the external may be missing if the download failed)
+[[ -r $HOME/.local/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] \
+  && source $HOME/.local/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+typeset -U path
+path=("$HOME/bin" "$HOME/.local/bin" $path)
