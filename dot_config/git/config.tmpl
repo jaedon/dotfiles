@@ -1,0 +1,86 @@
+[user]
+	name = {{ .name | quote }}
+	email = {{ .email | quote }}
+[alias]
+	a = add
+	au = add -u .
+	b = branch
+	ba = branch --verbose --all
+	c = commit
+	cm = commit -m
+	co = checkout
+	cl = clone
+	cp = cherry-pick
+	d = diff
+	df = diff --color-words
+	dc = diff --color-words --cached
+	l = log --graph --oneline --decorate --color
+	lp = log -p
+	pu = pull
+	r = reset
+	rh = reset --hard
+	ri = rebase --interactive --autosquash
+	ru = remote update
+	s = status
+	st = status -s
+	t = tag -n
+	tc = tag --contains
+	# Replacement for the deprecated "git whatchanged"
+	w = log --raw --no-merges
+	amend = commit --amend
+	# Shell functions fail with a clear git error when no argument is given
+	fixup = "!f() { git commit --fixup=\"$1\"; }; f"
+	squash = "!f() { git commit --squash=\"$1\"; }; f"
+	# Dry run only. To delete, run "git clean -fxd" (ignored files are removed too)
+	cleanup = clean -n -x -d
+	shoot = push origin --delete
+[checkout]
+	defaultRemote = origin
+[core]
+	editor = vim
+	abbrev = 12
+	quotepath = false
+	# macOS only. Linux ignores it.
+	precomposeUnicode = true
+	# -R is needed to keep ANSI colors
+	pager = less -FRX
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential
+[diff]
+	algorithm = histogram
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[init]
+	defaultBranch = main
+[pull]
+	rebase = false
+[push]
+	autoSetupRemote = true
+	followTags = true
+[rerere]
+	enabled = true
+[rebase]
+	autoSquash = true
+	autoStash = true
+	updateRefs = true
+[tag]
+	sort = version:refname
+[tar "tar.xz"]
+	command = xz -c
+[tar "tar.zst"]
+	command = zstd -T0 -c
+[feature]
+	# Also enables core.untrackedCache and index.version=4
+	manyFiles = true
+# Enable only when every environment runs Git >= 2.48 (Ubuntu 24.04 ships 2.43)
+# [worktree]
+# 	useRelativePaths = true
+[branch]
+	sort = -committerdate
