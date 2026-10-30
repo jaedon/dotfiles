@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# mise config hash: {{ include "dot_config/mise/config.toml" | sha256sum }}
+# Install the tools declared in ~/.config/mise/config.toml.
+set -Eeuo pipefail
+trap 'echo >&2 "mise install failed (line ${LINENO})"' ERR
+
+"$HOME/.local/bin/mise" install

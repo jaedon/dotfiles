@@ -1,0 +1,21 @@
+[tools]
+claude-code = "latest"
+cloudflared = "latest"
+codex = "latest"
+devcontainer-cli = "latest"
+fd = "latest"
+gh = "latest"
+git-lfs = "latest"
+go = "latest"
+node = "24"
+opencode = "latest"
+pi = "latest"
+python = "latest"
+rclone = "latest"
+ripgrep = "latest"
+starship = "latest"
+uv = "latest"
+
+[env]
+GOPATH = "{{env.HOME}}/.local/share/go"
+GOBIN = "{{env.HOME}}/.local/bin"

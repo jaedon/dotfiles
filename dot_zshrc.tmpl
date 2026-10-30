@@ -94,3 +94,11 @@ alias path='print -l $path'    # Native zsh, no pipe or tr
 
 typeset -U path
 path=("$HOME/bin" "$HOME/.local/bin" $path)
+
+if command -v mise &>/dev/null; then
+  eval "$(mise activate zsh)"
+fi
+
+if command -v starship &>/dev/null; then
+  eval "$(starship init zsh)"
+fi
