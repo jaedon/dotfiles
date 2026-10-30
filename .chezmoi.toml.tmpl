@@ -1,3 +1,19 @@
+{{- /* Precedence: env DOTFILES_<KEY> > stored value > prompt (TTY) > default (no TTY) */ -}}
+{{- $interactive := stdinIsATTY -}}
+{{- $defaults := dict "name" "Jaedon Shin" "email" "jaedon.shin@gmail.com" -}}
+{{- $values := dict -}}
+{{- range $key, $default := $defaults -}}
+{{-   $value := env (printf "DOTFILES_%s" (upper $key)) -}}
+{{-   if not $value -}}
+{{-     if $interactive -}}
+{{-       $value = promptStringOnce $ $key (title $key) $default -}}
+{{-     else -}}
+{{-       $value = get $ $key | default $default -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $_ := set $values $key $value -}}
+{{- end -}}
+
 [data]
-    name = "Jaedon Shin"
-    email = "jaedon.shin@gmail.com"
+    name = {{ $values.name | quote }}
+    email = {{ $values.email | quote }}
