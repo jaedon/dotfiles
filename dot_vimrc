@@ -1,0 +1,17 @@
+" Search
+set ignorecase
+set smartcase
+set incsearch
+set hlsearch
+
+" Editing
+set showmatch
+set autowrite
+set hidden
+set encoding=utf-8
+set number
+set nowrap
+set backspace=indent,eol,start
+
+" Mouse: enable when needed
+"set mouse=a
