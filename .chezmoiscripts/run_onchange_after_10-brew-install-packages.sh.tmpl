@@ -1,0 +1,36 @@
+{{ if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+# Install Homebrew packages listed in .chezmoidata/packages.yaml (macOS only).
+# chezmoi re-runs this script whenever the rendered package list changes.
+set -Eeuo pipefail
+trap 'echo >&2 "brew package install failed (line ${LINENO})"' ERR
+
+brew_bin="{{ if eq .chezmoi.arch "arm64" }}/opt/homebrew{{ else }}/usr/local{{ end }}/bin/brew"
+
+if [[ ! -x $brew_bin ]]; then
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+
+# A fresh install is not on PATH yet, so load it into this process
+eval "$("$brew_bin" shellenv)"
+
+# --no-upgrade: only install missing packages; upgrade manually with "brew upgrade"
+brew bundle --no-upgrade --file=/dev/stdin <<'EOF'
+{{ range .packages.darwin.brews -}}
+brew {{ . | quote }}
+{{ end -}}
+{{ range .packages.darwin.casks -}}
+cask {{ . | quote }}
+{{ end -}}
+EOF
+
+{{ if has "docker" .packages.darwin.brews -}}
+mkdir -p "$HOME/.docker/cli-plugins"
+{{ if has "docker-buildx" .packages.darwin.brews -}}
+ln -sfn "$(brew --prefix)/opt/docker-buildx/bin/docker-buildx" "$HOME/.docker/cli-plugins/docker-buildx"
+{{ end -}}
+{{ if has "docker-compose" .packages.darwin.brews -}}
+ln -sfn "$(brew --prefix)/opt/docker-compose/bin/docker-compose" "$HOME/.docker/cli-plugins/docker-compose"
+{{ end -}}
+{{ end -}}
+{{ end -}}
