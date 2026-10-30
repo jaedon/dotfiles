@@ -1,0 +1,10 @@
+{{- if eq .chezmoi.os "darwin" }}
+Include {{ env "HOME" }}/.colima/ssh_config
+{{ end }}
+Include ~/.ssh/config.local
+Host *
+    User ubuntu
+    ServerAliveInterval 60
+    ServerAliveCountMax 10
+    TCPKeepAlive yes
+    IPQoS=throughput
