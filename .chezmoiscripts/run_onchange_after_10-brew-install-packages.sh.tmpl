@@ -5,14 +5,12 @@
 set -Eeuo pipefail
 trap 'echo >&2 "brew package install failed (line ${LINENO})"' ERR
 
-brew_bin="{{ if eq .chezmoi.arch "arm64" }}/opt/homebrew{{ else }}/usr/local{{ end }}/bin/brew"
-
-if [[ ! -x $brew_bin ]]; then
+if [[ ! -x /opt/homebrew/bin/brew ]]; then
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
 # A fresh install is not on PATH yet, so load it into this process
-eval "$("$brew_bin" shellenv)"
+eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # --no-upgrade: only install missing packages; upgrade manually with "brew upgrade"
 brew bundle --no-upgrade --file=/dev/stdin <<'EOF'
