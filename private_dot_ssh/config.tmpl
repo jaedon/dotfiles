@@ -2,6 +2,8 @@
 Include {{ .chezmoi.homeDir }}/.colima/ssh_config
 
 {{ end -}}
+Include {{ .chezmoi.homeDir }}/.ssh/config.d/*.conf
+
 Host *
     User ubuntu
     ServerAliveInterval 60
