@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=en_US.UTF-8
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends zsh git curl ca-certificates sudo locales vim xz-utils unzip less && \
+    apt-get install -y --no-install-recommends zsh git curl ca-certificates sudo locales vim xz-utils unzip less libatomic1 && \
     locale-gen en_US.UTF-8 && \
     rm -rf /var/lib/apt/lists/*
 
