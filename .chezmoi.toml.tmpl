@@ -14,9 +14,14 @@
 {{-   $_ := set $values $key $value -}}
 {{- end -}}
 
+{{- /* LM Studio runs on the Mac: local on macOS, remote elsewhere. No prompt. */ -}}
+{{- $lmstudio := ternary "http://127.0.0.1:1234/v1" "http://mac.lan:1234/v1" (eq .chezmoi.os "darwin") -}}
+{{- $lmstudio = env "DOTFILES_LMSTUDIO_URL" | default $lmstudio -}}
+
 [data]
     name = {{ $values.name | quote }}
     email = {{ $values.email | quote }}
+    lmstudioBaseURL = {{ $lmstudio | quote }}
 
 [diff]
     exclude = ["scripts"]

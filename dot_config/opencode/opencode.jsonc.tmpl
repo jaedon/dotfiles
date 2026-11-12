@@ -1,0 +1,13 @@
+{{- $isLocal := or (contains "127.0.0.1" .lmstudioBaseURL) (contains "localhost" .lmstudioBaseURL) -}}
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "lmstudio": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": {{ if $isLocal }}"LM Studio (Local)"{{ else }}"LM Studio (Remote)"{{ end }},
+      "options": {
+        "baseURL": {{ .lmstudioBaseURL | quote }}
+      }
+    }
+  }
+}
