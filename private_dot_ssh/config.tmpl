@@ -1,7 +1,7 @@
-{{- if eq .chezmoi.os "darwin" }}
+{{- if eq .chezmoi.os "darwin" -}}
 Include {{ env "HOME" }}/.colima/ssh_config
-{{ end }}
-Include ~/.ssh/config.local
+
+{{ end -}}
 Host *
     User ubuntu
     ServerAliveInterval 60
