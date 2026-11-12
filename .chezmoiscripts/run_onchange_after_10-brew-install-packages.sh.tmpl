@@ -23,12 +23,16 @@ cask {{ . | quote }}
 EOF
 
 {{ if has "docker" .packages.darwin.brews -}}
-mkdir -p "$HOME/.docker/cli-plugins"
-{{ if has "docker-buildx" .packages.darwin.brews -}}
-ln -sfn "$(brew --prefix)/opt/docker-buildx/bin/docker-buildx" "$HOME/.docker/cli-plugins/docker-buildx"
-{{ end -}}
-{{ if has "docker-compose" .packages.darwin.brews -}}
-ln -sfn "$(brew --prefix)/opt/docker-compose/bin/docker-compose" "$HOME/.docker/cli-plugins/docker-compose"
-{{ end -}}
+# Add the Homebrew CLI plugin directory to ~/.docker/config.json.
+# Merge with jq so existing keys (auths, credsStore, ...) stay untouched.
+docker_config="$HOME/.docker/config.json"
+mkdir -p "$HOME/.docker"
+[[ -f "$docker_config" ]] || echo '{}' > "$docker_config"
+
+tmp_file="$(mktemp "$docker_config.XXXXXX")"
+/usr/bin/jq --arg dir "$(brew --prefix)/lib/docker/cli-plugins" \
+  '.cliPluginsExtraDirs = (((.cliPluginsExtraDirs // []) + [$dir]) | unique)' \
+  "$docker_config" > "$tmp_file"
+mv "$tmp_file" "$docker_config"
 {{ end -}}
 {{ end -}}
