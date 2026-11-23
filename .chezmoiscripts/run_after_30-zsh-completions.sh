@@ -34,12 +34,17 @@ gen() {
   rm -f "$tmp"
 }
 
+gen _cargo rustup completions zsh cargo
 gen _chezmoi chezmoi completion zsh
+gen _codex codex completion zsh
 gen _fd fd --gen-completions zsh
 gen _gh gh completion -s zsh
+gen _git-lfs git-lfs completion zsh
 gen _mise "$MISE_BIN" completion zsh
+gen _opencode opencode --completions zsh
 gen _rclone rclone completion zsh -
 gen _rg rg --generate complete-zsh
+gen _rustup rustup completions zsh
 gen _starship starship completions zsh
 gen _uv uv generate-shell-completion zsh
 gen _uvx uvx --generate-shell-completion zsh
