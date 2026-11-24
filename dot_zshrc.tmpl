@@ -87,6 +87,7 @@ alias 2='cd -2'
 alias 3='cd -3'
 alias grep='grep --color=auto'
 alias path='print -l $path'    # Native zsh, no pipe or tr
+alias cx='codex exec --ephemeral --skip-git-repo-check -s read-only'
 
 # Functions
 _docker_available() {
@@ -390,6 +391,49 @@ PY
     --sort=-committerdate \
     --format='%(committerdate:iso8601) %(committerdate:relative)%09%(refname:short)' \
     refs/heads/
+}
+
+# OpenCode
+,oc() {
+  _require_command opencode || return 1
+  local prompt="$*"
+  [[ -t 0 ]] || prompt+=$'\n\n'"$(cat)"
+  opencode run "$prompt"
+}
+
+,oc-serve() {
+  local dir="${XDG_STATE_HOME:-$HOME/.local/state}/opencode-serve"
+  local pid_file="$dir/pid"
+  case "${1:-start}" in
+    start)
+      _require_command opencode || return 1
+      : "${OPENCODE_SERVER_PASSWORD:?OPENCODE_SERVER_PASSWORD is not set}"
+      if [[ -f "$pid_file" ]] && kill -0 "$(<"$pid_file")" 2>/dev/null; then
+        echo "Already running (PID: $(<"$pid_file"))" >&2
+        return 1
+      fi
+      mkdir -p "$dir"
+      (
+        cd "$HOME" || exit 1
+        OPENCODE_PASSWORD="$OPENCODE_SERVER_PASSWORD" \
+          nohup opencode serve --hostname 0.0.0.0 --port "${2:-4096}" \
+          >"$dir/log" 2>&1 &
+        echo $! >"$pid_file"
+      )
+      echo "Started (PID: $(<"$pid_file"))"
+      ;;
+    stop)
+      [[ -f "$pid_file" ]] && kill "$(<"$pid_file")" && rm -f "$pid_file" \
+        && echo "Stopped" || echo "Not running" >&2
+      ;;
+    logs)
+      tail -f "$dir/log"
+      ;;
+    *)
+      echo "Usage: ,oc-serve [start [port]|stop|logs]" >&2
+      return 1
+      ;;
+  esac
 }
 
 # Autosuggestions (guard: the external may be missing if the download failed)
