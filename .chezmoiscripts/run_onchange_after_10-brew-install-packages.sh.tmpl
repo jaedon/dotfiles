@@ -27,12 +27,14 @@ EOF
 # Merge with jq so existing keys (auths, credsStore, ...) stay untouched.
 docker_config="$HOME/.docker/config.json"
 mkdir -p "$HOME/.docker"
-[[ -f "$docker_config" ]] || echo '{}' > "$docker_config"
+[[ -f "$docker_config" ]] || (umask 077 && echo '{}' > "$docker_config")
 
 tmp_file="$(mktemp "$docker_config.XXXXXX")"
 /usr/bin/jq --arg dir "$(brew --prefix)/lib/docker/cli-plugins" \
   '.cliPluginsExtraDirs = (((.cliPluginsExtraDirs // []) + [$dir]) | unique)' \
   "$docker_config" > "$tmp_file"
-mv "$tmp_file" "$docker_config"
+# Overwrite in place so the existing file mode is preserved.
+cat "$tmp_file" > "$docker_config"
+rm -f "$tmp_file"
 {{ end -}}
 {{ end -}}
