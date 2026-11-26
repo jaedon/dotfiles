@@ -1,0 +1,3 @@
+# Source-only documentation; do not install into $HOME.
+AGENTS.md
+README.md
