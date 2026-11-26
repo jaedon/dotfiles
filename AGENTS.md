@@ -4,8 +4,9 @@
 - This repo is a chezmoi source tree. Treat files under `$HOME` as generated output and edit only this source tree.
 - `AGENTS.md` and `README.md` stay source-only through `.chezmoiignore`.
 - Verification is chezmoi-only: `chezmoi diff`, `chezmoi apply --dry-run --verbose`, `chezmoi cat <source-file>`, `chezmoi doctor`.
-- Use `chezmoi verify --exclude scripts`; plain `verify` fails while `run_after_*` scripts are pending (`chezmoi status` shows `R`).
-- `--dry-run` previews scripts without running them, and `chezmoi diff` excludes scripts. Inspect `.chezmoiscripts/` directly.
+- Use `chezmoi verify --exclude scripts`; plain `verify` fails while `run_after_*` scripts are pending. `--dry-run` previews scripts without running them.
+- Scripts are excluded from `diff` and `status`; inspect `.chezmoiscripts/` directly. Check rendered syntax with `chezmoi execute-template -f .chezmoiscripts/<script> | bash -n`.
+- Test the config template with `chezmoi execute-template --init ... < .chezmoi.toml.tmpl`. After changing it, run `chezmoi init` to regenerate `~/.config/chezmoi/chezmoi.toml`.
 
 ## Inputs
 - `.chezmoi.toml.tmpl`: `DOTFILES_NAME` / `DOTFILES_EMAIL` > stored config > TTY prompt > defaults. Set the env vars for noninteractive `chezmoi init`.
